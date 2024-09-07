@@ -79,7 +79,7 @@ GRAFANA_PASS=...                 # Grafana password
         - (Optional) `mmaps`
         - (Optional) `Buildings`
 
-6. (Optional) Set [config](#Setting-mangosd/ahbot/aiplayerbot/realmd/anticheat-config)
+6. (Optional) Set [config](#setting-mangosdahbotaiplayerbotrealmdanticheat-config)
 
 7. Start servers
     - Run `docker compose up -d`
