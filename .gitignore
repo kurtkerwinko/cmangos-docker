@@ -4,4 +4,5 @@ extractor/**/*
 
 !sample.env
 !data/.gitkeep
-!extractor/.gitkeep
+!data/extractor/
+!data/extractor/.gitkeep

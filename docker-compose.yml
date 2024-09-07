@@ -46,14 +46,14 @@ services:
     stdin_open: true
     tty: true
     volumes:
-      - ./extractor/resources/dbc:/opt/cmangos/bin/dbc:ro
-      - ./extractor/resources/maps:/opt/cmangos/bin/maps:ro
-      - ./extractor/resources/vmaps:/opt/cmangos/bin/vmaps:ro
+      - ./data/extractor/resources/dbc:/opt/cmangos/bin/dbc:ro
+      - ./data/extractor/resources/maps:/opt/cmangos/bin/maps:ro
+      - ./data/extractor/resources/vmaps:/opt/cmangos/bin/vmaps:ro
       # Optional
-      - ./extractor/resources/Cameras:/opt/cmangos/bin/Cameras:ro
-      - ./extractor/resources/mmaps:/opt/cmangos/bin/mmaps:ro
+      - ./data/extractor/resources/Cameras:/opt/cmangos/bin/Cameras:ro
+      - ./data/extractor/resources/mmaps:/opt/cmangos/bin/mmaps:ro
       # Not required
-      - ./extractor/resources/Buildings:/opt/cmangos/bin/Buildings:ro
+      - ./data/extractor/resources/Buildings:/opt/cmangos/bin/Buildings:ro
     command: ./mangosd -c ../etc/mangosd.conf -a ../etc/ahbot.conf
 
   realmd-server:
@@ -141,7 +141,7 @@ services:
   extractor:
     <<: *cmangos
     volumes:
-      - ./extractor:/extractor
+      - ./data/extractor:/extractor
     profiles:
       - tools
       - tools-extractor

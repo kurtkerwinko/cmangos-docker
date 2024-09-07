@@ -63,15 +63,15 @@ GRAFANA_PASS=...                 # Grafana password
 
 4. (Optional) Extract files from the client - [Reference](https://github.com/cmangos/issues/wiki/Installation-Instructions#extract-files-from-the-client)
     - **NOTE: Do if you don't already have the necessary extracted files**
-    - Create the `./extractor/client` directory
-    - Move all contents of the retail client folder into the `./extractor/client` directory
+    - Create the `./data/extractor/client` directory
+    - Move all contents of the retail client folder into the `./data/extractor/client` directory
     - Run `docker compose run --rm extractor /root/run-extractor.sh`
     - Skip to `Step 6`
 
 5. (Optional) Add extracted files
     - **NOTE: Only if you have the necessary extracted files**
-    - Create the `./extractor/resources` directory
-    - Copy the extracted folders to the `./extractor/resources` directory
+    - Create the `./data/extractor/resources` directory
+    - Copy the extracted folders to the `./data/extractor/resources` directory
         - `dbc`
         - `maps`
         - `vmaps`
