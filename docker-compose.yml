@@ -1,0 +1,148 @@
+name: cmangos
+
+x-cmangos: &cmangos
+  image: cmangos:latest
+  pull_policy: never
+  environment: &cmangos-environment
+    DATABASE_HOST: database
+    Mangosd_Metric_Address: influxdb
+  env_file:
+    - path: ./cmangos.env
+      required: false
+  entrypoint: /root/setup.sh
+
+services:
+  database:
+    image: mysql:9.0.1
+    restart: unless-stopped
+    environment:
+      MYSQL_USER: ${DATABASE_USER}
+      MYSQL_ROOT_PASSWORD: ${DATABASE_PASS}
+      MYSQL_PASSWORD: ${DATABASE_PASS}
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      retries: 10
+      interval: 5s
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+
+  # CMaNGOS servers
+  mangosd-server:
+    <<: *cmangos
+    restart: unless-stopped
+    environment:
+      <<: *cmangos-environment
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASS: ${DATABASE_PASS}
+      Mangosd_Metric_Username: ${INFLUX_USER}
+      Mangosd_Metric_Password: ${INFLUX_TOKEN}
+    ports:
+      - "${MANGOS_DOCKER_BIND_IP:-127.0.0.1}:8085:8085"
+      - "${MANGOS_DOCKER_BIND_IP:-127.0.0.1}:3443:3443" # RA port
+      - "${MANGOS_DOCKER_BIND_IP:-127.0.0.1}:7878:7878" # SOAP port
+    depends_on:
+      database:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./extractor/resources/dbc:/opt/cmangos/bin/dbc:ro
+      - ./extractor/resources/maps:/opt/cmangos/bin/maps:ro
+      - ./extractor/resources/vmaps:/opt/cmangos/bin/vmaps:ro
+      # Optional
+      - ./extractor/resources/Cameras:/opt/cmangos/bin/Cameras:ro
+      - ./extractor/resources/mmaps:/opt/cmangos/bin/mmaps:ro
+      # Not required
+      - ./extractor/resources/Buildings:/opt/cmangos/bin/Buildings:ro
+    command: ./mangosd -c ../etc/mangosd.conf -a ../etc/ahbot.conf
+
+  realmd-server:
+    <<: *cmangos
+    restart: unless-stopped
+    environment:
+      <<: *cmangos-environment
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASS: ${DATABASE_PASS}
+    ports:
+      - "${MANGOS_DOCKER_BIND_IP:-127.0.0.1}:3724:3724"
+    depends_on:
+      database:
+        condition: service_healthy
+    command: ./realmd -c ../etc/realmd.conf
+
+  # Metrics
+  influxdb:
+    image: influxdb:2.7.10-alpine
+    restart: unless-stopped
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUX_USER}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASS}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
+      DOCKER_INFLUXDB_INIT_ORG: cmangos
+      DOCKER_INFLUXDB_INIT_BUCKET: perfd
+    ports:
+      - "${METRICS_DOCKER_BIND_IP:-127.0.0.1}:8086:8086"
+    volumes:
+      - ./data/influxdb/db:/var/lib/influxdb2
+      - ./data/influxdb/config:/etc/influxdb2
+    profiles:
+      - metrics
+
+  grafana:
+    image: grafana/grafana-oss:11.2.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASS}
+      ## TODO: Use database service
+    ports:
+      - "${METRICS_DOCKER_BIND_IP:-127.0.0.1}:3000:3000"
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+    profiles:
+      - metrics
+
+  # Tools
+  cmangos:
+    image: cmangos:latest
+    build:
+      context: cmangos
+      args:
+        GIT_DB_REPO: ${GIT_DB_REPO}
+        GIT_DB_REPO_COMMIT: ${GIT_DB_REPO_COMMIT:-master}
+        GIT_CMANGOS_REPO: ${GIT_CMANGOS_REPO}
+        GIT_CMANGOS_REPO_COMMIT: ${GIT_CMANGOS_REPO_COMMIT:-master}
+        GIT_PLAYERBOTS_REPO_COMMIT: ${GIT_PLAYERBOTS_REPO_COMMIT:-master}
+    profiles:
+      - tools
+
+  database-migrations:
+    <<: *cmangos
+    environment:
+      <<: *cmangos-environment
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASS: ${DATABASE_PASS}
+      MANGOSD_SERVER: ${MANGOS_PUBLIC_IP:-127.0.0.1}
+      DATABASE_AHBOT: ${DATABASE_AHBOT:-YES}
+      DATABASE_PLAYERBOTS: ${DATABASE_PLAYERBOTS:-YES}
+    stdin_open: true
+    tty: true
+    depends_on:
+      database:
+        condition: service_healthy
+    volumes:
+      - ./data/db-backups:/root/database/backups
+    profiles:
+      - tools
+      - tools-db
+    command: echo "COMMAND=/root/auto-migration.sh or COMMAND=/root/db-migration.sh"
+
+  extractor:
+    <<: *cmangos
+    volumes:
+      - ./extractor:/extractor
+    profiles:
+      - tools
+      - tools-extractor
+    command: echo "COMMAND=/root/run-extractor.sh"

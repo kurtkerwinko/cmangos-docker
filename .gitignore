@@ -1,0 +1,7 @@
+*.env
+data/**/*
+extractor/**/*
+
+!sample.env
+!data/.gitkeep
+!extractor/.gitkeep
