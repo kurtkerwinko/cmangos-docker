@@ -38,8 +38,8 @@ services:
       Mangosd_Metric_Password: ${INFLUX_TOKEN}
     ports:
       - "${MANGOS_DOCKER_BIND_IP:-127.0.0.1}:8085:8085"
-      - "${MANGOS_DOCKER_BIND_IP:-127.0.0.1}:3443:3443" # RA port
-      - "${MANGOS_DOCKER_BIND_IP:-127.0.0.1}:7878:7878" # SOAP port
+      - "127.0.0.1:3443:3443" # RA port
+      - "127.0.0.1:7878:7878" # SOAP port
     depends_on:
       database:
         condition: service_healthy
